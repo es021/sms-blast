@@ -1,0 +1,374 @@
+
+<style>
+
+    .custom_table tr:hover{
+        background: gainsboro;
+        color: #1f292f;
+    }
+
+    .custom_table tr:active{
+        background: white;
+    }
+
+    .custom_table tr:hover .message{
+        /*        display: block;*/
+        -webkit-line-clamp: 7;
+
+    }
+
+    .message_table .message{
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        font-size: inherit;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        margin-bottom: 4px;
+    }
+
+    .sub_nav{
+        position: fixed;
+        width: 100%;
+        background-color: #1f292f;
+        color: white;
+        /* flex center horizontally */
+        display: flex;
+        flex-direction: row;     /* make main axis horizontal (default setting) */
+        justify-content: center; /* center items horizontally, in this case */
+        /*align-items: center;     /* center items vertically, in this case */
+
+        top : 0;
+        visibility: hidden;
+    }
+
+    .sub_nav .sub_nav_item{
+        margin-bottom: 0px;
+        cursor: pointer;
+    }
+
+
+    .sub_nav .sub_nav_item{
+        border-right: none;
+    }
+
+    .sub_nav .sub_nav_item.active{
+        background-color: gainsboro;
+        color:#1f292f;
+    }
+
+    .sub_nav .sub_nav_item:first-of-type{
+        border-left: none;
+    }
+
+    .sub_nav .sub_nav_item:last-of-type{
+        margin-right: 0px;
+    }
+
+</style>
+
+
+<div id="draft_sent_sub_nav" class="sub_nav">
+    <div id="sent" class="block_button sub_nav_item">Sent</div>
+    <div id="draft" class="block_button sub_nav_item">Draft</div>
+</div>
+
+<div id="result_card" class="card">
+    <div class="card_content" style="text-align: left">
+        <div class="card_title">
+            Sent Message
+        </div>
+        <div hidden="hidden" id="message_list_load" class="load_container"><i class="fa fa-spinner fa-pulse fa-2x"></i></div>
+
+        <table class="custom_table message_table table table-responsive table-condensed">
+            <tbody>
+                <tr  hidden="hidden" id="row_template"> 
+                    <td class="col_info">
+                        <span class="message">
+                        </span>
+                        <small class="info text-muted">{user_id} at {DD-MM-YYYY} {HH::MM:SS}</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="text-center btn_operation" id="btn_load_more">
+            Load More
+        </div>
+
+        <div hidden="hidden" class="text-center btn_operation" id="load_fetching">
+            <i class="fa fa-spinner fa-pulse"></i>
+        </div>
+
+    </div>
+</div>
+
+<div hidden="hidden" id="modal_content">
+    <div class="card">
+        <div class="card_info text-muted">
+        </div>
+        <div style="text-align: left;" class="card_content">
+        </div>
+        <br>
+        <div  hidden="hidden" id="draft_operation">
+            <div class="block_button text-center draft_operation_send"><i class="fa fa-envelope"></i><span class="text">Edit & Send Message</span></div>
+            <br><div class="link_button text-center draft_operation_delete_draft">Delete Draft</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jQuery(document).ready(function () {
+        //app.view.openModal("Save Draft", input_dom.val());
+        var message_table = jQuery("table.message_table");
+        var message_list_load = jQuery("#message_list_load");
+        var rows = message_table.find("tr");
+        var modal_content = jQuery("#modal_content");
+        var card_content = modal_content.find(".card_content");
+        var card_info = modal_content.find(".card_info");
+        var draft_operation = modal_content.find("#draft_operation");
+        var result_card_title = jQuery("#result_card .card_title");
+
+        var mes_current_count = 0;
+
+        var row_template = jQuery("#row_template");
+        var currentMessageType = "sent";
+
+        var current_page = 1;
+        var PAGE_LIMIT = 0;
+
+
+        /* load more start ****/
+        var btn_load_more = jQuery("#btn_load_more");
+        var load_fetching = jQuery("#load_fetching");
+        btn_load_more.click(function () {
+            app.dom.toggleShowHideDom(btn_load_more, load_fetching);
+            current_page++;
+            fetchDraftSentFromDB(current_page);
+        });
+
+        /* load more end ****/
+
+        initResults();
+
+        function initResults() {
+            btn_load_more.show();
+            current_page = 1;
+            fetchDraftSentFromDB(current_page);
+            result_card_title.html(currentMessageType.ucfirst() + " Message");
+        }
+
+
+        rows.click(function () {
+            if (currentMessageType === "draft") {
+                draft_operation.removeAttr("hidden");
+            } else if (currentMessageType === "sent") {
+                draft_operation.attr("hidden", "hidden");
+            }
+
+            var dom = jQuery(this);
+            var id = dom.attr("id");
+            var mes = dom.find(".message").html();
+            var info = dom.find(".info").html();
+            card_info.html(info);
+            card_content.html(mes);
+
+            function eventRegister() {
+                var draft_operation_send = jQuery(".draft_operation_send");
+                var draft_operation_delete_draft = jQuery(".draft_operation_delete_draft");
+
+                draft_operation_send.click(function () {
+                    app.view.openPage(Page.SEND_MESSAGE, openSendMessageHandler);
+                    app.view.modal.close();
+                });
+
+                draft_operation_delete_draft.click(function () {
+                    if (confirm("Deleting this draft message. Continue?")) {
+                        deleteMessageDraft(id);
+                    }
+                });
+            }
+
+            function openSendMessageHandler() {
+                input_dom.attr("message_id", id);
+                input_dom.val(mes.htmlToInput());
+            }
+
+            app.view.openModal(currentMessageType.ucfirst() + " Message", modal_content.html(), eventRegister);
+        });
+
+        function deleteMessageDraft(id) {
+
+            function successHandler(res) {
+                console.log(res);
+                if (res.status === Status.OK) {
+                    var row = message_table.find("#" + id);
+                    removeRowFromTable(row);
+                    alert(res.data);
+                    app.view.modal.close();
+                } else {
+                    alert(res.data);
+                }
+            }
+
+            function errorHandler(err) {
+                var mes = "[Server Error] Something went wrong. Could delete message from database";
+                alert(mes);
+            }
+
+            var data = {table: DBTable.MESSAGES, id: id};
+
+            app.service.sendPostRequest("delete", data, successHandler, errorHandler);
+        }
+
+        function removeRowFromTable(row) {
+            row.remove();
+            mes_current_count--;
+            console.log(mes_current_count);
+            if (mes_current_count <= 0) {
+                message_table.html("Nothing to show here.");
+            }
+        }
+
+
+        function subNavEventHandler() {
+            var obj = this;
+            this.items.click(function () {
+                var dom = jQuery(this);
+                var id = dom.attr("id");
+
+                if (obj.active === id) {
+                    return;
+                }
+
+                //change active
+                var prevAct = obj.dom.find("#" + obj.active);
+                obj.active = id;
+                prevAct.removeClass("active");
+                dom.addClass("active");
+
+
+                console.log(id);
+                currentMessageType = id;
+                //fetchDraftSentFromDB(1);
+
+                //result_card_title.html(id.ucfirst() + " Message");
+                initResults();
+
+            });
+        }
+
+        var subNav = new SubNav("draft_sent_sub_nav", currentMessageType, subNavEventHandler);
+
+        function addNewRow(id, message, created_by, created_at, isPrepend) {
+            var new_row = row_template.clone(true, true);
+            new_row.attr("id", id);
+            
+            if("This is second draft\'s\nhaa" === message){
+                console.log("same");
+            }
+            
+            //message = "This is second draft\'s\nhaa";
+            new_row.find(".message").html(message);
+            var info = "by " + created_by + " at " + created_at;
+            new_row.find(".info").html(info);
+            new_row.removeAttr("hidden");
+
+            if (isPrepend) {
+                message_table.prepend(new_row);
+            } else {
+                message_table.append(new_row);
+            }
+
+            return new_row;
+        }
+
+        function fetchDraftSentFromDB(page) {
+            if (page === 1) {
+                app.dom.toggleShowHideDom(message_list_load, message_table);
+            }
+
+            if (page === 1) {
+                message_table.html("");
+                mes_current_count = 0;
+            }
+
+            function finishFetch(page, res_count) {
+                if (page === 1) {
+                    app.dom.toggleShowHideDom(message_list_load, message_table);
+                } else {
+                    app.dom.toggleShowHideDom(btn_load_more, load_fetching);
+                }
+
+                if (res_count < PAGE_LIMIT) {
+                    btn_load_more.hide();
+                }
+            }
+
+            function successHandler(res) {
+                console.log(res);
+                if (res.status === Status.OK) {
+                    if (page === 1) {
+                        PAGE_LIMIT = res.extra.page_limit;
+                    }
+                    var res_count = res.data.length;
+                    if (res_count === 0) {
+                        btn_load_more.hide();
+                    }
+
+                    mes_current_count += res_count;
+
+                    if (mes_current_count <= 0) {
+                        message_table.html("Nothing to show here.");
+                        finishFetch(page, res_count);
+                        return;
+                    }
+
+                    for (var i in res.data) {
+                        var message = res.data[i];
+                        var by = "";
+                        if (message.updated_by !== "") {
+                            by = message.updated_by;
+                        } else {
+                            by = message.created_by;
+                        }
+
+                        var at = "";
+                        if (message.updated_at !== "") {
+                            at = message.updated_at;
+                        } else {
+                            at = message.created_at;
+                        }
+                        addNewRow(message.id, message.message, by, at);
+                    }
+
+                    //initDom();
+                    finishFetch(page, res_count);
+
+                } else {
+                    alert(res.data);
+                    message_table.html(res.data);
+                    app.dom.toggleShowHideDom(message_list_load, message_table);
+                }
+
+                console.log(mes_current_count);
+            }
+
+            function errorHandler(err) {
+                var mes = "[Server Error] Something went wrong. Could not get " + currentMessageType + " message from database";
+                alert(mes);
+                message_table.html(mes);
+                app.dom.toggleShowHideDom(message_list_load, message_table);
+            }
+
+            var status = currentMessageType;
+            var data = {page: page, status: status};
+
+            //console.log(data);
+            app.service.sendPostRequest("get_message", data, successHandler, errorHandler);
+        }
+
+
+    });
+
+</script>

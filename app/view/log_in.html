@@ -1,0 +1,76 @@
+
+<div class="card">
+    <div class="card_title">
+    </div>
+    <div class="card_content" style="text-align: left">
+        <div hidden="hidden" class="loading"><i class="fa fa-spinner fa-pulse fa-3x"></i></div>
+        <form id="form_log_in">
+            <div id="form_error" class="form_error"></div>
+            <div class="form-group">
+                <label for="user_name">User Name</label>
+                <input class="form-control form_input"
+                       type="text"
+                       id="user_name" 
+                       name='user_name'
+                       placeholder="Enter your user name">
+            </div>
+            <div class="form-group">
+                <label for="pass">Password</label>
+                <input class="form-control form_input"
+                       type="password"
+                       id="pass" 
+                       name='pass'
+                       placeholder="****">
+            </div>
+        </form>
+        <button id="btn_login"  class="btn btn-primary btn-block">Log In</button>
+    </div>
+</div>
+
+<script>
+    var form_dom = jQuery("form#form_log_in");
+    var loading_dom = jQuery(".loading");
+    var form_error = jQuery(".form_error");
+    var input_dom = jQuery("form#form_log_in input");
+
+    var rules = {
+        'user_name': {required: true, maxlength: 60},
+        'pass': {required: true, minlength: 4}
+    };
+
+    var form_login = new Form(form_dom, rules, submitLogIn, form_error, loading_dom, input_dom);
+
+    var btn_login = jQuery("button#btn_login");
+
+    btn_login.click(function () {
+        form_login.current_form.submit();
+    });
+
+    function submitLogIn() {
+        form_login.startSubmit();
+
+        var action = "login";
+        var data = form_login.getCurrentObjectData();
+
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+                var user = {};
+                var jwt = res.data;
+                user[LocalStorage.USER._USER_NAME] = data.user_name;
+                app.logIn(user, jwt);
+            } else {
+                form_error.html(res.data);
+            }
+
+            form_login.finishSubmit();
+        }
+
+        function errorHandler(err) {
+            form_error.html("Something went wrong. Please Try Again");
+            form_login.finishSubmit();
+        }
+
+        app.service.sendPostRequest(action, data, successHandler, errorHandler);
+
+    }
+</script>

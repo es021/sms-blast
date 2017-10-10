@@ -1,0 +1,174 @@
+<div class="card">
+    <div class="card_title">
+    </div>
+    <div class="card_content" style="text-align: left">
+        <div hidden="hidden" class="loading"><i class="fa fa-spinner fa-pulse fa-3x"></i></div>
+        <form id="form_send_message">
+            <div id="form_error" class="form_error"></div>
+            <div class="form-group">
+                <label for="message">Compose New Message</label>
+                <textarea class="form-control form_input"
+                          rows=10 
+                          id="message" 
+                          name='message'
+                          placeholder="Start writing"></textarea>
+            </div>
+            <div id="btn_send" class="block_button text-center"><i class="fa fa-envelope"></i><span class="text">Send</span></div>
+            <br><div id="btn_save_draft" class="link_button text-center">Save Draft</div>
+        </form>
+    </div>
+</div>
+
+
+
+<script>
+    var form_dom = jQuery("form#form_send_message");
+    var loading_dom = jQuery(".loading");
+    var form_error = form_dom.find(".form_error");
+    var input_dom = form_dom.find("textarea#message");
+    var number_count = 0;
+    var isSaveDraft = false;
+    var saveSentMessage = false;
+    getNumberCount();
+    var rules = {
+        'message': {required: true, maxlength: 250}
+    };
+    var form_send_message = new Form(form_dom, rules, submitSendMessage, form_error, loading_dom, null);
+    var btn_send = jQuery("#btn_send");
+    var btn_save_draft = jQuery("#btn_save_draft");
+    btn_send.click(function (e) {
+        e.preventDefault();
+        isSaveDraft = false;
+        form_send_message.current_form.submit();
+    });
+    btn_save_draft.click(function (e) {
+        e.preventDefault();
+        isSaveDraft = true;
+        form_send_message.current_form.submit();
+        //app.view.openModal("Save Draft", input_dom.val());
+    });
+    function getNumberCount() {
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+                number_count = res.data.count;
+                if (number_count > 0) {
+                    btn_send.find(".text").html("Send to " + number_count + " numbers");
+                }
+            }
+        }
+        app.service.sendPostRequest("get_number_count", null, successHandler, null);
+    }
+
+
+    function submitSendMessage(sms_id) {
+        if (number_count <= 0) {
+            alert("There is no number to be send. Please add number in manage contact first.");
+            return;
+        }
+
+        form_send_message.startSubmit();
+        var user = getLocalStorage(LocalStorage.USER.KEY);
+        var action = "";
+        var data = {};
+
+        var message_id = input_dom.attr("message_id");
+        if (isSaveDraft) {  // button save draft is clicked
+            //update from draft
+            if (typeof message_id !== "undefined") { //update from draft 
+                console.log("update draft");
+                action = "update";
+                data = {
+                    table: DBTable.MESSAGES
+                    , id: message_id
+                    , updateData: {
+                        message: input_dom.val()
+                        , updated_by: user[LocalStorage.USER._USER_NAME]
+                        , status: "draft"
+                    }
+                };
+            } else { //new message -- defatult
+                action = "insert";
+
+                data = {
+                    table: DBTable.MESSAGES
+                    , insertData: {
+                        message: input_dom.val()
+                        , created_by: user[LocalStorage.USER._USER_NAME]
+                        , status: "draft"
+                    }
+                };
+            }
+        } else { // buton send to number is clicked
+            if (saveSentMessage) { //save in csr sms blast db
+                if (typeof message_id !== "undefined") { //update from draft 
+                    action = "update";
+                    data = {
+                        table: DBTable.MESSAGES
+                        , id: message_id
+                        , updateData: {
+                            message: input_dom.val()
+                            , updated_by: user[LocalStorage.USER._USER_NAME]
+                            , status: "sent"
+                            , sms_id: sms_id
+                        }
+                    };
+                } else { //new message -- defatult
+                    action = "insert";
+                    data = {
+                        table: DBTable.MESSAGES
+                        , insertData: {
+                            message: input_dom.val()
+                            , created_by: user[LocalStorage.USER._USER_NAME]
+                            , status: "sent"
+                            , sms_id: sms_id
+                        }
+                    };
+                }
+
+            } else {  // save in pier sms gateway
+                action = "send_message";
+                data = {user_name: user[LocalStorage.USER._USER_NAME]
+                    , message: input_dom.val()
+                };
+            }
+        }
+
+
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+
+                if (isSaveDraft) {
+                    if (Number(res.data) > 0) { //insert new draft
+                        alert("Draft Successfully Saved");
+                    } else if (typeof message_id !== "undefined") { //save from draft
+                        alert("Draft Successfully Saved");
+                    }
+                } else {
+                    if (saveSentMessage) {
+                        console.log("Sent Message Successfully Saved");
+                        saveSentMessage = false;
+                    } else {
+                        saveSentMessage = true;
+                        submitSendMessage(res.data.sms_id);
+                        alert(res.data.message);
+                        input_dom.val("");
+                    }
+                }
+
+
+            } else {
+                saveSentMessage = false;
+                alert(res.data);
+            }
+            form_send_message.finishSubmit();
+        }
+
+        function errorHandler(err) {
+            saveSentMessage = false;
+            form_error.html("Something went wrong. Please Try Again");
+            form_send_message.finishSubmit();
+        }
+
+        app.service.sendPostRequest(action, data, successHandler, errorHandler);
+    }
+</script>

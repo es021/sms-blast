@@ -1,0 +1,38 @@
+
+<div class="card">
+    <div class="card_title">
+        About
+    </div>
+    <div class="card_content">
+        SMS Blast is created to help user broadcast SMS to multiple numbers easily.
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="logged_out">
+        <div id="log_in" class="block_button btn_open_page"><i class="fa fa-sign-in"></i>Log In</div>
+    </div>
+    <div class="logged_in">
+        <div id="send_message" class="block_button btn_open_page"><i class="fa fa-envelope"></i>Send Message</div>
+        <div id="contacts" class="block_button btn_open_page"><i class="fa fa-user"></i>Manage Contact Number</div>
+        <div id="draft_sent" class="block_button btn_open_page"><i class="fa fa-paper-plane"></i>Draft & Sent Message</div>
+        <div id="settings" class="block_button btn_open_page"><i class="fa fa-gear"></i>Settings</div>
+    </div>
+</div>
+
+<script>
+
+    app.dom.toogleLogInOut(jQuery(".card .logged_in"), jQuery(".card .logged_out"));
+
+    var btn_open_page = jQuery(".card .btn_open_page");
+
+    btn_open_page.click(function () {
+        var cur = jQuery(this);
+        var page_id = cur.attr("id");
+        if (page_id !== app.current_page) {
+            app.view.openPage(page_id);
+        }
+    });
+
+</script>

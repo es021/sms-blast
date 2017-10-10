@@ -1,0 +1,414 @@
+<div  class="card">
+    <div id="btn_open_form" class="block_button"><i class="fa fa-plus"></i>Add New Contact</div>
+    <div hidden="hidden" id="btn_close_form" class="block_button"><i class="fa fa-minus"></i>Cancel</div>
+    <div hidden="hidden" id="form_submit_load" class="load_container"><i class="fa fa-spinner fa-pulse fa-2x"></i></div>
+    <form hidden="hidden" id="form_add_contact">
+        <br>
+        <div id="form_error" class="form_error"></div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input class="form-control form_input"
+                   type="text"
+                   id="input_name" 
+                   name='name'
+                   placeholder="Name">
+            <label for="number">Phone Number</label>
+            <input class="form-control form_input"
+                   type="number"
+                   id="input_number" 
+                   name='number'
+                   placeholder="123456789">
+        </div>
+        <button id="btn_submit_add_contact" class="btn btn-primary btn-block">Add Contact</button>
+    </form>
+</div>
+
+<div id="result_card" class="card">
+    <div class="card_content" style="text-align: left">
+        <div class="card_title">
+            Contact List <small class="total_row"></small>
+        </div>
+        <div hidden="hidden" id="contact_list_load" class="load_container"><i class="fa fa-spinner fa-pulse fa-2x"></i></div>
+
+        <table class="custom_table contact_table table table-responsive table-condensed">
+            <tbody>
+                <tr hidden id="row_template"> 
+                    <td class="col_info">
+                        <span class="name">{name}</span>
+                        <br>
+                        <span class="number text-muted">{number}</span>
+                    </td>
+                    <td class="col_operation">
+                        <div class="edit btn_operation"><i class="fa fa-edit fa_margin_right"></i>Edit</div>
+                        <div class="delete btn_operation"><i class="fa fa-trash fa_margin_right"></i>Delete</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="text-center btn_operation" id="btn_load_more">
+            Load More
+        </div>
+
+        <div hidden="hidden" class="text-center btn_operation" id="load_fetching">
+            <i class="fa fa-spinner fa-pulse"></i>
+        </div>
+
+
+    </div>
+</div>
+
+<script>
+    // Add New Contact ******************************************************
+    var btn_open_form = jQuery("#btn_open_form");
+    var btn_close_form = jQuery("#btn_close_form");
+
+    var form_add_contact = jQuery("form#form_add_contact");
+    var form_input_name = form_add_contact.find("#input_name");
+    var form_input_number = form_add_contact.find("#input_number");
+    var btn_submit_add_contact = form_add_contact.find("#btn_submit_add_contact");
+    var form_submit_load = jQuery("#form_submit_load");
+    var form_error = form_add_contact.find(".form_error");
+    var current_operation = "";
+    var current_edit_id = -1;
+    var current_edit_row = null;
+    var result_card_title = jQuery("#result_card .card_title");
+    var result_card_title_total_row = result_card_title.find(".total_row");
+
+    var rules = {
+        'name': {required: true, maxlength: 47},
+        'number': {required: true, maxlength: 23}
+    };
+
+    var form_send_message = new Form(form_add_contact, rules, submitAddEditContact, form_error, form_submit_load, null);
+
+    function submitAddEditContact() {
+        form_send_message.startSubmit();
+        var action = "";
+        var insertData = {};
+        var updateData = {};
+        var data = {};
+        data["table"] = DBTable.CONTACTS;
+
+        if (current_operation === "add") {
+            var formData = form_send_message.getCurrentObjectData();
+            insertData = formData;
+            action = "insert";
+            formData["created_by"] = getLocalStorage(LocalStorage.USER.KEY)[LocalStorage.USER._USER_NAME];
+            data["insertData"] = formData;
+
+        } else if (current_operation === "edit") {
+            var updateData = form_send_message.getUpdateData();
+
+            if (!updateData) {
+                form_error.html("Nothing has changed");
+                form_send_message.finishSubmit("Failed");
+                return;
+            }
+
+            action = "update";
+            updateData["updated_by"] = getLocalStorage(LocalStorage.USER.KEY)[LocalStorage.USER._USER_NAME];
+            data["updateData"] = updateData;
+            data["id"] = current_edit_id;
+        }
+
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+                if (current_count === 0) {
+                    table_body.html("");
+                }
+
+                if (action === "insert") {
+                    alert("Successfully added new contact.");
+                    form_send_message.resetForm();
+                    var new_row = addNewRow(res.data, insertData.name, insertData.number, true);
+                    initDom(new_row);
+
+                    form_send_message.finishSubmit();
+                    toogleAddForm();
+                    TOTAL_ROW++;
+                    updateTotalRow();
+                }
+
+                if (action === "update") {
+                    alert("Contact successfully updated.");
+                    var parent = setRowInformation(current_edit_row, updateData);
+                    form_send_message.finishSubmit();
+                    toogleAddForm();
+
+                    jQuery("html,body").animate({
+                        scrollTop: parent.offset().top - 100
+                    }, 200);
+
+                }
+
+
+            } else {
+                alert(res.data);
+                form_send_message.finishSubmit();
+            }
+        }
+
+        function errorHandler(err) {
+            form_error.html("Something went wrong. Please Try Again");
+            form_send_message.finishSubmit();
+        }
+
+        app.service.sendPostRequest(action, data, successHandler, errorHandler);
+
+    }
+
+    /* load more start ****/
+    var btn_load_more = jQuery("#btn_load_more");
+    var load_fetching = jQuery("#load_fetching");
+    btn_load_more.click(function () {
+        app.dom.toggleShowHideDom(btn_load_more, load_fetching);
+        current_page++;
+        fetchContactFromDB(current_page);
+    });
+    /* load more end ****/
+
+    btn_open_form.click(function () {
+        btn_submit_add_contact.html("Add Contact");
+        current_operation = "add";
+        toogleAddForm();
+    });
+
+    btn_close_form.click(function () {
+        form_send_message.resetForm();
+        toogleAddForm();
+    });
+
+    btn_submit_add_contact.click(function (e) {
+        e.preventDefault();
+
+        form_add_contact.submit();
+    });
+
+    function toogleAddForm() {
+        app.dom.toggleShowHideDom(form_add_contact);
+        app.dom.toggleShowHideDom(btn_open_form, btn_close_form);
+    }
+
+    function openForm() {
+        if (form_add_contact.attr("hidden")) {
+            app.dom.toggleShowHideDom(form_add_contact);
+        }
+
+        btn_open_form.attr("hidden", "hidden");
+        btn_close_form.removeAttr("hidden");
+    }
+
+
+    //Contact List ************************************************************
+    var table_dom = jQuery("table.contact_table");
+    var contact_list_load = jQuery("#contact_list_load");
+    var table_body = table_dom.find("tbody");
+    var row_template = table_dom.find("#row_template");
+
+    var btn_edit = null;
+    var btn_delete = null;
+
+    var current_page = 1;
+    var current_count = 0;
+    var PAGE_LIMIT = 0;
+    var TOTAL_ROW = 0;
+
+    fetchContactFromDB(current_page);
+
+    function initDom(dom) {
+
+        if (typeof dom !== "undefined") {
+            btn_edit = dom.find(".col_operation .edit");
+            btn_delete = dom.find(".col_operation .delete");
+        } else {
+            btn_edit = table_dom.find(".col_operation .edit");
+            btn_delete = table_dom.find(".col_operation .delete");
+        }
+
+        btn_edit.click(function () {
+            var dom = jQuery(this);
+            current_edit_row = dom;
+            var data = getRowInformation(dom);
+            current_operation = "edit";
+            form_input_name.val(data.name);
+            form_input_number.val(data.number);
+            openForm();
+            form_send_message.initEdit();
+            console.log("Edit " + data.id);
+            btn_submit_add_contact.html("Edit Contact");
+            current_edit_id = data.id;
+
+            jQuery('html, body').animate({
+                scrollTop: 0
+            }, 200, function () {
+                form_input_name.focus();
+            });
+        });
+
+        btn_delete.click(function () {
+            var dom = jQuery(this);
+            var data = getRowInformation(dom);
+            if (confirm("Delete " + data.name + " contact information. Continue?")) {
+                console.log("Delete " + data.id);
+                deleteContactFromDB(data.id, dom);
+            }
+        });
+    }
+
+
+    function deleteContactFromDB(id, dom) {
+        app.dom.toggleShowHideDom(contact_list_load, table_dom);
+
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+                current_count--;
+                if (current_count <= 0) {
+                    table_body.html("Contact list is empty.");
+                    app.dom.toggleShowHideDom(contact_list_load, table_dom);
+                    return;
+                }
+                app.dom.toggleShowHideDom(contact_list_load, table_dom);
+                var parent = dom.parent().parent();
+                parent.remove();
+                TOTAL_ROW--;
+                updateTotalRow();
+
+            } else {
+
+                alert(res.data);
+                table_body.html(res.data);
+                app.dom.toggleShowHideDom(contact_list_load, table_dom);
+            }
+        }
+
+        function errorHandler(err) {
+            var mes = "[Server Error] Something went wrong. Could not delete contact number from database";
+            alert(mes);
+            app.dom.toggleShowHideDom(contact_list_load, table_dom);
+        }
+
+        var data = {id: id};
+        app.service.sendPostRequest("delete_contact", data, successHandler, errorHandler);
+    }
+
+    function fetchContactFromDB(page) {
+        if (page === 1) {
+            app.dom.toggleShowHideDom(contact_list_load, table_dom);
+        }
+        function successHandler(res) {
+            if (res.status === Status.OK) {
+                console.log(res);
+                if (page === 1) {
+                    PAGE_LIMIT = res.extra.page_limit;
+                    TOTAL_ROW = res.extra.total_row;
+                }
+
+                var res_count = res.data.length;
+                if (res_count === 0) {
+                    btn_load_more.hide();
+                }
+
+                current_count += res_count;
+
+                if (current_count <= 0) {
+                    table_body.html("Contact list is empty.");
+                    finishFetch(page, res_count);
+                    return;
+                }
+
+                for (var i in res.data) {
+
+                    var contact = res.data[i];
+                    addNewRow(contact.id, contact.name, contact.number);
+                }
+
+                initDom();
+                finishFetch(page, res_count);
+
+            } else {
+                alert(res.data);
+                table_body.html(res.data);
+                app.dom.toggleShowHideDom(contact_list_load, table_dom);
+            }
+        }
+
+        function finishFetch(page, res_count) {
+            if (page === 1) {
+                updateTotalRow();
+                app.dom.toggleShowHideDom(contact_list_load, table_dom);
+            } else {
+                app.dom.toggleShowHideDom(btn_load_more, load_fetching);
+            }
+
+            if (res_count < PAGE_LIMIT) {
+                btn_load_more.hide();
+            }
+        }
+
+        function errorHandler(err) {
+            var mes = "[Server Error] Something went wrong. Could not get contact number from database";
+            alert(mes);
+            table_body.html(mes);
+            app.dom.toggleShowHideDom(contact_list_load, table_dom);
+        }
+
+        var data = {page: page};
+        app.service.sendPostRequest("get_contacts", data, successHandler, errorHandler);
+    }
+
+    function updateTotalRow() {
+        if (TOTAL_ROW > 0) {
+            result_card_title_total_row.html("(" + TOTAL_ROW + ")");
+        }
+    }
+
+    function addNewRow(id, name, number, isPrepend) {
+        var new_row = row_template.clone();
+        new_row.attr("id", id);
+        new_row.find(".name").html(name);
+        new_row.find(".number").html(number);
+        new_row.removeAttr("hidden");
+
+        if (isPrepend) {
+            table_body.prepend(new_row);
+        } else {
+            table_body.append(new_row);
+        }
+
+        return new_row;
+    }
+
+    function setRowInformation(dom, data) {
+        var parent = dom.parent().parent();
+
+        for (var k in data) {
+            parent.find("." + k).html(data[k]);
+        }
+
+        return parent;
+    }
+
+    function getRowInformation(dom) {
+        var parent = dom.parent().parent();
+        var data = {};
+        data.id = parent.attr("id");
+        data.name = parent.find(".name").html();
+        data.number = parent.find(".number").html();
+
+        return data;
+    }
+
+    function contactOperation(action, data) {
+        switch (action) {
+            case 'create':
+                break;
+            case 'edit':
+                break;
+            case 'delete':
+                break;
+        }
+    }
+
+
+</script>

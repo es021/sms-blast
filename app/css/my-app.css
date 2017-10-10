@@ -1,0 +1,237 @@
+/* Color Scheme 
+test2s
+header : #25333e
+back-body : #182128
+card-body : 1f292f
+card-sub-square : #151e25
+
+light blue : #e6eff4
+light orange : #f5c851
+
+green : #5bbc93
+dark blue : #0e4375
+dark orange : #ef823f
+
+*/
+/****************************************************/
+/* general ****************/
+
+body{
+    background-color: #182128;
+}
+
+button{
+    border-radius: 0px !important;
+}
+
+.load_container{
+    text-align: center;
+    padding: 10px;
+}
+
+/****************************************************/
+/* page layout ****************/
+
+.page .header{
+    background-color: #25333e;
+    color : gainsboro;
+    min-height: 65px;
+    padding: 10px;
+    font-weight: bold;
+    font-size: 20px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 999;
+}
+
+.no_padding{
+    padding: 0;
+}
+
+
+.page .header .subtitle{
+    font-size: 12px;
+    font-weight: normal;
+    color: gray;
+}
+
+.page .content{
+    padding: 65px 0px;
+    padding-top:80px;
+    color : #0e4375;
+    background-color: #182128;
+    max-width: 768px;
+}
+
+@media only screen and (min-width: 768px) {
+    .page .content{
+        margin: auto;
+        width: 50%;
+    }
+
+    .page .content .sub_nav{
+        left:0;
+    }
+}
+
+.page .footer{
+    background-color: #25333e;
+    font-size: 20px;
+    padding: 5px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    color:gray;
+}
+
+.page .footer .fa{
+    margin-right : 25px;
+    cursor: pointer;
+}
+
+.fa .fa_text{
+    font-family: sans-serif;
+    font-size: 70%;
+}
+
+.page .footer .fa:hover,
+.page .footer .fa.active{
+    color:gainsboro;
+}
+
+.page .footer .fa:last-of-type{
+    margin-right : 0px;
+}
+
+/****************************************************/
+/* card ****************/
+
+.content .card{
+    text-align: left;
+    background-color: #1f292f;
+    color: white;
+    padding: 10px;
+    margin: 10px;
+}
+
+.content .card .card_title{
+    font-size: 20px;
+    color: #f5c851;
+}
+
+.content .card .card_content{
+    font-size: 13px;
+    text-align: justify;
+}
+
+/****************************************************/
+/* form ****************/
+
+form .form_input{
+    background-color: #151e25;
+    border-color: #25333e;
+    color: white;
+}
+
+form .form_error,
+form label.error{
+    color: indianred;
+    font-weight: normal;
+    margin-top: 3px;
+    width: 100%;
+    text-align: center;
+}
+
+.loading{
+    text-align: center;
+    padding: 10px;
+}
+
+/****************************************************/
+/* button  ****************/
+
+
+.link_button{
+    color:gray;
+    cursor: pointer;
+}
+
+.link_button:hover{
+    color:white;
+}
+
+.block_button{
+    border: 1px solid;
+    border-color: gray;
+    padding: 10px;
+    cursor: pointer;
+    margin-bottom: 7px;
+}
+
+.block_button:last-of-type{
+    margin-bottom:0px;
+}
+
+.block_button i.fa{
+    margin-right: 10px;
+}
+
+.block_button:hover{
+    background-color: gainsboro;
+    color:#1f292f;
+}
+
+.block_button:active{
+    background-color: white;
+}
+
+.fa_margin_right{
+    margin-right: 5px;
+}
+
+/****************************************************/
+/* contanct table  ****************/
+
+.custom_table .col_operation{
+    color: gray;
+    text-align: right;
+}
+
+.btn_operation{
+    cursor: pointer;
+    color: gray;
+}
+
+.btn_operation:hover{
+    color:white;
+}
+
+.custom_table{
+    border: none;
+    border-bottom: 1px gray solid;
+}
+
+
+/****************************************************/
+/* my modal   ****************/
+.my_modal{
+    color: white;
+    position: absolute;
+    z-index: 99999;
+    top: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.my_modal .my_modal_body{
+    height: 100%;
+}
+
+.my_modal .my_modal_header{
+    min-height: 50px;
+}
+
+.my_modal .my_modal_footer{
+    min-height: 50px;
+}

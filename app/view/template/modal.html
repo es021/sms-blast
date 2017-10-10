@@ -1,0 +1,20 @@
+<div id="my_modal" class="my_modal page">
+    <div class="my_modal_header text-center header">
+        {modal_title}
+    </div>
+    <div class="my_modal_body content">
+        {modal_body}
+    </div>
+    <div class="my_modal_footer text-center footer">
+        <div id="my_modal_close" class="fa fa-close">
+            <div class="fa_text">Close</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jQuery(document).ready(function () {
+        app.view.modal = new MobileModal(jQuery('#my_modal'));
+        app.view.modal.open();
+    });
+</script>
