@@ -19,8 +19,12 @@ include_once '../functions.php';
         <link rel="icon" href="<?= APP_ICON ?>">
         <link rel="apple-touch-icon-precomposed" href="<?= APP_ICON ?>">
         <meta name="msapplication-tileimage" content="<?= APP_ICON ?>">
-        <meta name="format-detection" content="telephone=no">
         <meta name="msapplication-tap-highlight" content="no">
+
+
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="format-detection" content="telephone=no">
 
         <script>
             var SERVICE_URL = "<?= SERVICE_URL ?>";
