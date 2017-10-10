@@ -2,16 +2,17 @@
 
 include_once 'functions.php';
 
-/* * App Basic ** */
-DEFINE("IS_PROD", !isLocalhost());
-DEFINE("APP_NAME", "SMS Blast");
-DEFINE("APP_VERSION", "1.0");
-
 /* * URLs** */
-
 DEFINE("HOST_URL", "http://" . $_SERVER["HTTP_HOST"]);
 DEFINE("APP_URL", HOST_URL . "/SMSBlast/app/");
 DEFINE("SERVICE_URL", HOST_URL . "/SMSBlast/service/");
+DEFINE("IS_PROD", !isLocalhost());
+
+/* * App Basic ** */
+DEFINE("APP_NAME", "SMS Blast");
+DEFINE("APP_DESC", "powered by Westports IT");
+DEFINE("APP_ICON", APP_URL . "img/westports.png");
+DEFINE("APP_VERSION", "1.0");
 
 /* * DATABASE CONFIG** */
 if (IS_PROD) {

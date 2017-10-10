@@ -1,15 +1,26 @@
 <?php
 include_once '../config.php';
 include_once '../functions.php';
-
 ?>
 <!DOCTYPE html>
 <html>
     <head>
-        <meta name="format-detection" content="telephone=no">
-
-        <meta name="msapplication-tap-highlight" content="no">
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+
+        <title><?= APP_NAME ?></title>
+        <meta name="description" content="<?= APP_DESC ?>">
+
+        <meta property="og:title" content="<?= APP_NAME ?>" />
+        <meta property="og:url" content="<?= APP_URL ?>" />
+        <meta property="og:description" content="<?= APP_DESC ?>">
+        <meta property="og:image" content="<?= APP_ICON ?>">
+        <meta property="og:type" content="app" />
+
+        <link rel="icon" href="<?= APP_ICON ?>">
+        <link rel="apple-touch-icon-precomposed" href="<?= APP_ICON ?>">
+        <meta name="msapplication-tileimage" content="<?= APP_ICON ?>">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
 
         <script>
             var SERVICE_URL = "<?= SERVICE_URL ?>";
@@ -39,7 +50,6 @@ include_once '../functions.php';
         <script type="text/javascript" src="js/model/Service.js?v=<?= JS_VERSION ?>"></script>
         <script type="text/javascript" src="js/model/MobileModal.js?v=<?= JS_VERSION ?>"></script>
         <script type="text/javascript" src="js/model/SubNav.js?v=<?= JS_VERSION ?>"></script>
-        <title>SMS Blast</title>
     </head>
     <body>
 
